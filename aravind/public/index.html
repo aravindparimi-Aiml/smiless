@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cheminformatics Virtual Laboratory</title>
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- 3Dmol.js for WebGL 3D Molecular Graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.0.4/3Dmol-min.js"></script>
+    <!-- Plotly.js for interactive charts -->
+    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+    <!-- jsPDF for client-side PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --bg-card: #161b22;
+            --bg-input: #0b0f19;
+            --border-color: #30363d;
+            --primary: #00d2ff;
+            --primary-glow: rgba(0, 210, 255, 0.15);
+            --accent-blue: #58a6ff;
+            --accent-green: #2ea043;
+            --accent-amber: #d29922;
+            --accent-red: #f85149;
+            --text-main: #e6edf3;
+            --text-muted: #8b949e;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            line-height: 1.5;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        aside.sidebar {
+            width: 280px;
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            padding: 1.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 1000;
+        }
+
+        .brand-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .brand-tag {
+            font-size: 0.72rem;
+            color: var(--primary);
+            font-family: var(--font-mono);
+            background: var(--primary-glow);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            display: inline-block;
+        }
+
+        .nav-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            margin-top: 1rem;
+        }
+
+        .nav-item {
+            padding: 0.65rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .nav-item:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+            background: var(--primary-glow);
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            font-weight: 600;
+        }
+
+        .sidebar-preset {
+            margin-top: auto;
+            border-top: 1px solid var(--border-color);
+            padding-top: 1rem;
+        }
+
+        .select-dark {
+            width: 100%;
+            background: var(--bg-input);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        /* Main Content */
+        main.main-content {
+            margin-left: 280px;
+            padding: 2rem 2.5rem;
+            flex: 1;
+            max-width: 1300px;
+        }
+
+        /* Hero banner */
+        .hero-banner {
+            background: linear-gradient(135deg, rgba(22, 27, 34, 0.9) 0%, rgba(13, 17, 23, 0.95) 100%);
+            border: 1px solid rgba(0, 210, 255, 0.25);
+            border-radius: 12px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 210, 255, 0.06);
+        }
+
+        .hero-title {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.25rem;
+        }
+
+        .hero-sub {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .tag-pill {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.72rem;
+            font-weight: 600;
+            border-radius: 20px;
+            background: rgba(0, 210, 255, 0.12);
+            color: var(--primary);
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            margin-right: 0.4rem;
+        }
+
+        /* Cards & Grids */
+        .glass-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .grid-5 {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .mol-card {
+            background: var(--bg-card);
+            border: 1.5px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .mol-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        .mol-card.active {
+            border-color: var(--primary);
+            background: rgba(0, 210, 255, 0.06);
+        }
+
+        /* Metric Box Grid */
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.8rem;
+            margin: 1.25rem 0;
+        }
+
+        .metric-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-left: 3px solid var(--primary);
+            border-radius: 8px;
+            padding: 0.8rem 1rem;
+        }
+
+        .metric-label {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #fff;
+            font-family: var(--font-mono);
+            margin-top: 0.2rem;
+        }
+
+        /* 3D Viewer styles */
+        #viewer-container {
+            width: 100%;
+            height: 400px;
+            position: relative;
+            background: radial-gradient(circle at 50% 50%, #111827 0%, #0b0f19 100%);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .viewer-controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            z-index: 100;
+        }
+
+        .btn-ctrl {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(51, 65, 85, 0.8);
+            color: #94a3b8;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-ctrl:hover, .btn-ctrl.active {
+            background: rgba(0, 210, 255, 0.2);
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        #hud-inspector {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-family: var(--font-mono);
+            color: #cbd5e1;
+            z-index: 100;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: #00d2ff;
+            color: #0b0f19;
+            border: none;
+            padding: 0.55rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-primary:hover {
+            background: #38bdf8;
+            box-shadow: 0 0 12px rgba(0, 210, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 0.55rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.88rem;
+            cursor: pointer;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-blue);
+        }
+
+        /* Disclaimer */
+        .disclaimer-banner {
+            background: rgba(210, 153, 34, 0.08);
+            border: 1px solid rgba(210, 153, 34, 0.3);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: var(--accent-amber);
+            font-size: 0.82rem;
+            line-height: 1.4;
+            margin: 1rem 0;
+        }
+
+        /* Tables */
+        table.chem-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+
+        table.chem-table th, table.chem-table td {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        table.chem-table th {
+            background: #1e293b;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        table.chem-table tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .status-pass {
+            background: rgba(46, 160, 67, 0.15);
+            color: #3fb950;
+            border: 1px solid rgba(46, 160, 67, 0.4);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .status-fail {
+            background: rgba(248, 81, 73, 0.15);
+            color: #f85149;
+            border: 1px solid rgba(248, 81, 73, 0.4);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        /* Chat bubbles */
+        .chat-bubble {
+            padding: 0.85rem 1.1rem;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .chat-bubble.user {
+            background: #1e293b;
+            border: 1px solid var(--border-color);
+        }
+
+        .chat-bubble.assistant {
+            background: #0f172a;
+            border: 1px solid rgba(0, 210, 255, 0.3);
+        }
+
+        /* Hide tabs */
+        .tab-section {
+            display: none;
+        }
+
+        .tab-section.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div>
+            <div class="brand-title">🧪 Virtual Lab</div>
+            <div class="brand-tag">Netlify Cloud Edition • 3Dmol.js</div>
+        </div>
+
+        <ul class="nav-list">
+            <li class="nav-item active" onclick="switchTab('explorer')">🧪 Molecular Explorer</li>
+            <li class="nav-item" onclick="switchTab('properties')">📊 Property Analysis</li>
+            <li class="nav-item" onclick="switchTab('comparison')">⚖️ Molecule Comparison</li>
+            <li class="nav-item" onclick="switchTab('assistant')">🤖 AI Chemistry Assistant</li>
+            <li class="nav-item" onclick="switchTab('reports')">📄 PDF Lab Reports</li>
+            <li class="nav-item" onclick="switchTab('assessment')">🎓 Assessment Lab</li>
+        </ul>
+
+        <div class="sidebar-preset">
+            <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Library Preset</label>
+            <select class="select-dark" id="mol-selector" onchange="selectMolecule(this.value)">
+                <!-- Filled dynamically -->
+            </select>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Hero Header -->
+        <div class="hero-banner">
+            <h1 class="hero-title">Cheminformatics Virtual Laboratory</h1>
+            <p class="hero-sub">In silico molecular modeling, interactive 3D force field visualization, and drug-likeness analytics.</p>
+            <div>
+                <span class="tag-pill">10 Predefined Standards</span>
+                <span class="tag-pill">ETKDGv3 + MMFF94</span>
+                <span class="tag-pill">Lipinski & Veber</span>
+                <span class="tag-pill">3Dmol.js WebGL</span>
+                <span class="tag-pill">Netlify CDN</span>
+            </div>
+        </div>
+
+        <!-- TAB 1: MOLECULAR EXPLORER -->
+        <section id="tab-explorer" class="tab-section active">
+            <h2 style="margin-bottom: 1rem; color: var(--primary);">🧪 Molecular Explorer & 3D Conformer Studio</h2>
+
+            <!-- Predefined Cards Grid -->
+            <div class="grid-5" id="preset-grid" style="margin-bottom: 1.5rem;">
+                <!-- Filled dynamically -->
+            </div>
+
+            <!-- Active Molecule View -->
+            <div class="glass-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <div>
+                        <h3 id="mol-name-display" style="font-size: 1.4rem; color: #fff;">Aspirin</h3>
+                        <p id="mol-desc-display" style="color: var(--text-muted); font-size: 0.85rem;">Acetylsalicylic acid, NSAID and irreversible COX-1 inhibitor.</p>
+                    </div>
+                    <div>
+                        <span class="tag-pill" id="mol-cat-display">Salicylate / NSAID</span>
+                        <span class="tag-pill" id="mol-mw-display">MW: 180.16 g/mol</span>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <!-- 2D Structure -->
+                    <div>
+                        <h4 style="margin-bottom: 0.5rem; color: var(--accent-blue);">📐 2D Depiction</h4>
+                        <div id="svg-container" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; text-align: center; padding: 10px; height: 350px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                            <!-- SVG inserted here -->
+                        </div>
+                        <div style="margin-top: 8px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">
+                            SMILES: <code id="mol-smiles-display" style="color: var(--primary);">CC(=O)Oc1ccccc1C(=O)O</code>
+                        </div>
+                    </div>
+
+                    <!-- 3D Conformer Studio -->
+                    <div>
+                        <h4 style="margin-bottom: 0.5rem; color: var(--accent-blue);">🌐 Interactive 3D Conformer (WebGL)</h4>
+                        <div id="viewer-container">
+                            <div class="viewer-controls">
+                                <button class="btn-ctrl active" onclick="set3dStyle('ball_and_stick')">Ball & Stick</button>
+                                <button class="btn-ctrl" onclick="set3dStyle('cpk')">CPK</button>
+                                <button class="btn-ctrl" onclick="set3dStyle('stick')">Sticks</button>
+                                <button class="btn-ctrl" onclick="set3dStyle('wireframe')">Wireframe</button>
+                                <button class="btn-ctrl" onclick="toggle3dSurface()">Surface</button>
+                                <button class="btn-ctrl" onclick="toggle3dSpin()">Auto-Spin</button>
+                                <button class="btn-ctrl" onclick="recenter3d()">Recenter</button>
+                            </div>
+                            <div id="viewer-3d" style="width: 100%; height: 100%;"></div>
+                            <div id="hud-inspector">Click an atom to inspect element, index, coordinates, and charges</div>
+                        </div>
+
+                        <div class="disclaimer-banner">
+                            <b>Conformer Note:</b> Computationally generated 3D conformer optimized via MMFF94 force field. Represents a calculated energy minimum; actual conformations in solution exist as dynamic ensembles.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: PROPERTY ANALYSIS -->
+        <section id="tab-properties" class="tab-section">
+            <h2 style="margin-bottom: 1rem; color: var(--primary);">📊 Molecular Property Analysis & Drug-Likeness</h2>
+
+            <div class="metric-grid" id="metrics-container">
+                <!-- Filled dynamically -->
+            </div>
+
+            <div class="grid-2">
+                <!-- Lipinski Rule of 5 -->
+                <div class="glass-card">
+                    <h3 style="color: var(--accent-blue); margin-bottom: 0.5rem;">💊 Lipinski Rule of Five (Oral Bioavailability)</h3>
+                    <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                        Heuristic screening for oral absorption and intestinal permeability.
+                    </p>
+                    <table class="chem-table" id="lipinski-table">
+                        <!-- Filled dynamically -->
+                    </table>
+                    <div class="disclaimer-banner">
+                        <b>Screening Disclaimer:</b> Lipinski's Rule of Five is an empirical screening heuristic. It does not establish pharmacological efficacy, safety, metabolic stability, or clinical suitability.
+                    </div>
+                </div>
+
+                <!-- Veber & Constitution -->
+                <div class="glass-card">
+                    <h3 style="color: var(--accent-blue); margin-bottom: 0.5rem;">📐 Veber Rules & Topological Descriptors</h3>
+                    <table class="chem-table" id="veber-table">
+                        <!-- Filled dynamically -->
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: MOLECULE COMPARISON -->
+        <section id="tab-comparison" class="tab-section">
+            <h2 style="margin-bottom: 1rem; color: var(--primary);">⚖️ Multi-Molecule Comparative Studio</h2>
+            <div class="glass-card">
+                <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+                    <label style="font-size: 0.9rem; font-weight: 600;">Compare Target:</label>
+                    <select class="select-dark" id="comp-mol-1" style="max-width: 200px;" onchange="updateComparison()">
+                        <!-- Filled dynamically -->
+                    </select>
+                    <span>vs</span>
+                    <select class="select-dark" id="comp-mol-2" style="max-width: 200px;" onchange="updateComparison()">
+                        <!-- Filled dynamically -->
+                    </select>
+                </div>
+
+                <!-- Radar Chart -->
+                <div id="radar-chart-container" style="height: 380px;"></div>
+
+                <h4 style="margin: 1.5rem 0 0.5rem 0; color: var(--accent-blue);">Pairwise Property Differences</h4>
+                <table class="chem-table" id="comparison-diff-table">
+                    <!-- Filled dynamically -->
+                </table>
+            </div>
+        </section>
+
+        <!-- TAB 4: AI ASSISTANT -->
+        <section id="tab-assistant" class="tab-section">
+            <h2 style="margin-bottom: 1rem; color: var(--primary);">🤖 AI Chemistry Assistant</h2>
+            <div class="glass-card">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                    <button class="btn-secondary" onclick="askQuestion('What functional groups are present?')">What functional groups are present?</button>
+                    <button class="btn-secondary" onclick="askQuestion('What does the LogP value mean?')">What does the LogP value mean?</button>
+                    <button class="btn-secondary" onclick="askQuestion('Compare aspirin and paracetamol')">Compare aspirin and paracetamol</button>
+                    <button class="btn-secondary" onclick="askQuestion('Explain aromaticity and stereochemistry')">Explain aromaticity</button>
+                </div>
+
+                <div id="chat-messages-box" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 400px; overflow-y: auto; margin-bottom: 1rem;">
+                    <div class="chat-bubble assistant">
+                        <b>🤖 Virtual Lab Assistant:</b><br/>
+                        Welcome to the Cheminformatics Virtual Laboratory Assistant. Ask me about functional groups, molecular properties, aromaticity, or compare drug mechanisms.
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="user-input-text" class="select-dark" placeholder="Ask a question about the active molecule..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+                    <button class="btn-primary" onclick="sendChatMessage()">Send</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: PDF LAB REPORTS -->
+        <section id="tab-reports" class="tab-section">
+            <h2 style="margin-bottom: 1rem; color: var(--primary);">📄 Publication-Quality PDF Lab Reports</h2>
+            <div class="glass-card">
+                <h3 id="pdf-mol-title" style="color: #fff; margin-bottom: 0.5rem;">Target: Aspirin</h3>
+                <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1rem;">
+                    Generate and download a comprehensive, client-side formatted PDF report containing chemical formula, molecular weight, 2D structures, 3D conformer optimization data, complete descriptor tables, and Lipinski evaluation.
+                </p>
+                <button class="btn-primary" onclick="downloadPdfReport()">⬇️ Generate & Download PDF Report</button>
+            </div>
+        </section>
+
+        <!-- TAB 6: ASSESSMENT LAB -->
+        <section id="tab-assessment" class="tab-section">
+            <h2 style="margin-bottom: 1rem; color: var(--primary);">🎓 Cheminformatics Assessment Lab</h2>
+            <div class="glass-card">
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                    <button class="btn-ctrl active" id="tier-btn-beg" onclick="loadQuizTier('Beginner')">Beginner</button>
+                    <button class="btn-ctrl" id="tier-btn-int" onclick="loadQuizTier('Intermediate')">Intermediate</button>
+                    <button class="btn-ctrl" id="tier-btn-adv" onclick="loadQuizTier('Advanced')">Advanced</button>
+                </div>
+
+                <div id="quiz-container">
+                    <!-- Filled dynamically -->
+                </div>
+
+                <div style="margin-top: 1.5rem;">
+                    <button class="btn-primary" onclick="gradeQuiz()">📝 Submit Assessment</button>
+                </div>
+
+                <div id="quiz-result-box" style="margin-top: 1.5rem; display: none;"></div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let moleculesData = {};
+        let currentMolName = "Aspirin";
+        let viewer3d = null;
+        let is3dSpinning = false;
+        let surfaceObj = null;
+
+        // Load Molecules Data
+        async function initApp() {
+            try {
+                const resp = await fetch('molecules_data.json');
+                moleculesData = await resp.json();
+            } catch(e) {
+                console.error("Could not fetch molecules_data.json, falling back", e);
+            }
+            populateMoleculeSelectors();
+            selectMolecule("Aspirin");
+            loadQuizTier("Beginner");
+        }
+
+        function populateMoleculeSelectors() {
+            const selector = document.getElementById('mol-selector');
+            const comp1 = document.getElementById('comp-mol-1');
+            const comp2 = document.getElementById('comp-mol-2');
+            const grid = document.getElementById('preset-grid');
+
+            selector.innerHTML = '';
+            comp1.innerHTML = '';
+            comp2.innerHTML = '';
+            grid.innerHTML = '';
+
+            Object.keys(moleculesData).forEach((name, idx) => {
+                const mol = moleculesData[name];
+
+                // Dropdowns
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                selector.appendChild(opt);
+
+                const opt1 = opt.cloneNode(true);
+                const opt2 = opt.cloneNode(true);
+                comp1.appendChild(opt1);
+                comp2.appendChild(opt2);
+
+                // Grid cards
+                const card = document.createElement('div');
+                card.className = `mol-card ${name === currentMolName ? 'active' : ''}`;
+                card.id = `card-${name.replace(/\\s+/g, '')}`;
+                card.onclick = () => selectMolecule(name);
+                card.innerHTML = `
+                    <div style="font-weight: 700; color: #fff; font-size: 0.9rem;">${name}</div>
+                    <div style="font-size: 0.75rem; color: #00d2ff;">${mol.formula}</div>
+                    <div style="font-size: 0.72rem; color: #8b949e;">${mol.molecular_weight.toFixed(1)} g/mol</div>
+                `;
+                grid.appendChild(card);
+            });
+
+            comp1.value = "Aspirin";
+            comp2.value = "Paracetamol";
+        }
+
+        function selectMolecule(name) {
+            currentMolName = name;
+            const mol = moleculesData[name];
+            if (!mol) return;
+
+            document.getElementById('mol-selector').value = name;
+
+            // Highlight card
+            document.querySelectorAll('.mol-card').forEach(c => c.classList.remove('active'));
+            const activeCard = document.getElementById(`card-${name.replace(/\\s+/g, '')}`);
+            if (activeCard) activeCard.classList.add('active');
+
+            // Explorer view updates
+            document.getElementById('mol-name-display').textContent = mol.name;
+            document.getElementById('mol-desc-display').textContent = mol.description;
+            document.getElementById('mol-cat-display').textContent = mol.category;
+            document.getElementById('mol-mw-display').textContent = `MW: ${mol.molecular_weight.toFixed(2)} g/mol`;
+            document.getElementById('mol-smiles-display').textContent = mol.smiles;
+            document.getElementById('svg-container').innerHTML = mol.svg;
+            document.getElementById('pdf-mol-title').textContent = `Target: ${mol.name} (${mol.formula})`;
+
+            // Initialize or update 3D viewer
+            init3dViewer(mol.mol_block);
+
+            // Update Properties view
+            updatePropertiesView(mol);
+
+            // Update Comparison
+            updateComparison();
+        }
+
+        function init3dViewer(molBlock) {
+            const container = document.getElementById('viewer-3d');
+            container.innerHTML = '';
+            viewer3d = $3Dmol.createViewer(container, { backgroundColor: '#0b0f19' });
+            viewer3d.addModel(molBlock, 'mol');
+            viewer3d.setStyle({}, {
+                stick: { radius: 0.14, colorscheme: 'Jmol' },
+                sphere: { scale: 0.32, colorscheme: 'Jmol' }
+            });
+            viewer3d.zoomTo();
+            viewer3d.render();
+
+            viewer3d.setClickable({}, true, function(atom) {
+                const sym = atom.elem || 'X';
+                const idx = atom.index !== undefined ? atom.index : atom.serial;
+                const x = atom.x ? atom.x.toFixed(3) : '0.000';
+                const y = atom.y ? atom.y.toFixed(3) : '0.000';
+                const z = atom.z ? atom.z.toFixed(3) : '0.000';
+                const chg = atom.charge ? atom.charge.toFixed(3) : '0.000';
+
+                document.getElementById('hud-inspector').innerHTML =
+                    `Atom <b style="color: #00d2ff;">[${idx}] ${sym}</b> | Coords: <b style="color: #00d2ff;">X:${x}, Y:${y}, Z:${z}</b> | Charge: <b style="color: #00d2ff;">${chg}</b>`;
+
+                viewer3d.removeAllLabels();
+                viewer3d.addLabel(`${sym}_${idx}`, {
+                    position: { x: atom.x, y: atom.y, z: atom.z },
+                    backgroundColor: '#00d2ff',
+                    backgroundOpacity: 0.8,
+                    fontColor: '#000',
+                    fontSize: 12
+                });
+                viewer3d.render();
+            });
+        }
+
+        function set3dStyle(style) {
+            if (!viewer3d) return;
+            viewer3d.setStyle({}, {});
+            if (style === 'ball_and_stick') {
+                viewer3d.setStyle({}, { stick: { radius: 0.14, colorscheme: 'Jmol' }, sphere: { scale: 0.32, colorscheme: 'Jmol' } });
+            } else if (style === 'cpk') {
+                viewer3d.setStyle({}, { sphere: { colorscheme: 'Jmol' } });
+            } else if (style === 'stick') {
+                viewer3d.setStyle({}, { stick: { radius: 0.24, colorscheme: 'Jmol' } });
+            } else if (style === 'wireframe') {
+                viewer3d.setStyle({}, { line: { colorscheme: 'Jmol' } });
+            }
+            viewer3d.render();
+        }
+
+        function toggle3dSpin() {
+            if (!viewer3d) return;
+            is3dSpinning = !is3dSpinning;
+            viewer3d.spin(is3dSpinning);
+        }
+
+        function toggle3dSurface() {
+            if (!viewer3d) return;
+            if (surfaceObj) {
+                viewer3d.removeSurface(surfaceObj);
+                surfaceObj = null;
+            } else {
+                surfaceObj = viewer3d.addSurface($3Dmol.SurfaceType.VDW, { opacity: 0.55, color: 'white' });
+            }
+            viewer3d.render();
+        }
+
+        function recenter3d() {
+            if (!viewer3d) return;
+            viewer3d.zoomTo();
+            viewer3d.render();
+        }
+
+        function updatePropertiesView(mol) {
+            const p = mol.properties;
+            const lip = mol.lipinski;
+            const veber = mol.veber;
+
+            // Metrics
+            document.getElementById('metrics-container').innerHTML = `
+                <div class="metric-box">
+                    <div class="metric-label">Molecular Weight</div>
+                    <div class="metric-value">${p.molecular_weight.toFixed(2)}<span style="font-size:0.75rem; color:#8b949e;"> g/mol</span></div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-label">Crippen LogP</div>
+                    <div class="metric-value">${p.logp.toFixed(2)}</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-label">Polar Surface (TPSA)</div>
+                    <div class="metric-value">${p.tpsa.toFixed(1)}<span style="font-size:0.75rem; color:#8b949e;"> Å²</span></div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-label">H-Bond Donors</div>
+                    <div class="metric-value">${p.hbd}</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-label">H-Bond Acceptors</div>
+                    <div class="metric-value">${p.hba}</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-label">Rotatable Bonds</div>
+                    <div class="metric-value">${p.rotatable_bonds}</div>
+                </div>
+            `;
+
+            // Lipinski table
+            const lipRows = Object.keys(lip.rules).map(rule => {
+                const r = lip.rules[rule];
+                const badge = r.pass ? '<span class="status-pass">PASSED</span>' : '<span class="status-fail">VIOLATED</span>';
+                return `<tr><td>${rule}</td><td>${typeof r.value === 'number' ? r.value.toFixed(2) : r.value}</td><td>&le; ${r.threshold}</td><td>${badge}</td></tr>`;
+            }).join('');
+            document.getElementById('lipinski-table').innerHTML = `
+                <thead><tr><th>Criterion</th><th>Value</th><th>Cutoff</th><th>Status</th></tr></thead>
+                <tbody>${lipRows}</tbody>
+            `;
+
+            // Veber table
+            const veberRows = Object.keys(veber.rules).map(rule => {
+                const r = veber.rules[rule];
+                const badge = r.pass ? '<span class="status-pass">PASSED</span>' : '<span class="status-fail">VIOLATED</span>';
+                return `<tr><td>${rule}</td><td>${typeof r.value === 'number' ? r.value.toFixed(2) : r.value}</td><td>&le; ${r.threshold}</td><td>${badge}</td></tr>`;
+            }).join('');
+            document.getElementById('veber-table').innerHTML = `
+                <thead><tr><th>Criterion</th><th>Value</th><th>Cutoff</th><th>Status</th></tr></thead>
+                <tbody>${veberRows}</tbody>
+            `;
+        }
+
+        function updateComparison() {
+            const m1Name = document.getElementById('comp-mol-1').value;
+            const m2Name = document.getElementById('comp-mol-2').value;
+            const m1 = moleculesData[m1Name];
+            const m2 = moleculesData[m2Name];
+            if (!m1 || !m2) return;
+
+            const p1 = m1.properties;
+            const p2 = m2.properties;
+
+            // Plotly radar
+            const categories = ['MW / 100', 'LogP', 'TPSA / 20', 'H-Bond Donors', 'H-Bond Acceptors', 'Rot. Bonds'];
+            const r1 = [p1.molecular_weight / 100, p1.logp, p1.tpsa / 20, p1.hbd, p1.hba, p1.rotatable_bonds];
+            const r2 = [p2.molecular_weight / 100, p2.logp, p2.tpsa / 20, p2.hbd, p2.hba, p2.rotatable_bonds];
+
+            const trace1 = { type: 'scatterpolar', r: r1, theta: categories, fill: 'toself', name: m1Name, line: { color: '#00d2ff' } };
+            const trace2 = { type: 'scatterpolar', r: r2, theta: categories, fill: 'toself', name: m2Name, line: { color: '#f59e0b' } };
+
+            const layout = {
+                polar: {
+                    radialaxis: { visible: true, color: '#8b949e', gridcolor: '#30363d' },
+                    angularaxis: { color: '#cbd5e1', gridcolor: '#30363d' },
+                    bgcolor: '#161b22'
+                },
+                paper_bgcolor: '#0d1117',
+                font: { color: '#e6edf3' },
+                margin: { l: 40, r: 40, t: 30, b: 30 }
+            };
+
+            Plotly.newPlot('radar-chart-container', [trace1, trace2], layout);
+
+            // Diff table
+            document.getElementById('comparison-diff-table').innerHTML = `
+                <thead><tr><th>Descriptor</th><th>${m1Name}</th><th>${m2Name}</th><th>Difference (Δ)</th></tr></thead>
+                <tbody>
+                    <tr><td>Formula</td><td>${p1.formula}</td><td>${p2.formula}</td><td>-</td></tr>
+                    <tr><td>Molecular Weight</td><td>${p1.molecular_weight.toFixed(2)} g/mol</td><td>${p2.molecular_weight.toFixed(2)} g/mol</td><td>${(p2.molecular_weight - p1.molecular_weight).toFixed(2)} g/mol</td></tr>
+                    <tr><td>Crippen LogP</td><td>${p1.logp.toFixed(2)}</td><td>${p2.logp.toFixed(2)}</td><td>${(p2.logp - p1.logp).toFixed(2)}</td></tr>
+                    <tr><td>TPSA</td><td>${p1.tpsa.toFixed(1)} Å²</td><td>${p2.tpsa.toFixed(1)} Å²</td><td>${(p2.tpsa - p1.tpsa).toFixed(1)} Å²</td></tr>
+                    <tr><td>H-Bond Donors</td><td>${p1.hbd}</td><td>${p2.hbd}</td><td>${p2.hbd - p1.hbd}</td></tr>
+                    <tr><td>H-Bond Acceptors</td><td>${p1.hba}</td><td>${p2.hba}</td><td>${p2.hba - p1.hba}</td></tr>
+                    <tr><td>Rotatable Bonds</td><td>${p1.rotatable_bonds}</td><td>${p2.rotatable_bonds}</td><td>${p2.rotatable_bonds - p1.rotatable_bonds}</td></tr>
+                </tbody>
+            `;
+        }
+
+        // Navigation
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            event.currentTarget.classList.add('active');
+
+            if (tabId === 'explorer' && viewer3d) {
+                setTimeout(() => viewer3d.render(), 100);
+            }
+            if (tabId === 'comparison') {
+                setTimeout(updateComparison, 100);
+            }
+        }
+
+        // AI Assistant
+        function sendChatMessage() {
+            const input = document.getElementById('user-input-text');
+            const msg = input.value.trim();
+            if (!msg) return;
+            askQuestion(msg);
+            input.value = '';
+        }
+
+        function askQuestion(q) {
+            const box = document.getElementById('chat-messages-box');
+            box.innerHTML += `<div class="chat-bubble user"><b>👤 You:</b><br/>${q}</div>`;
+
+            const mol = moleculesData[currentMolName] || {};
+            const p = mol.properties || {};
+
+            let ans = `### Analysis for ${mol.name || 'Molecule'}\n\n`;
+            const qLower = q.toLowerCase();
+
+            if (qLower.includes('functional group')) {
+                const fg = Object.keys(p.functional_groups || {});
+                ans += `Identified functional groups: <b>${fg.length ? fg.join(', ') : 'Simple hydrocarbon scaffold'}</b>.<br/>These moieties govern solubility, acid-base behavior, and binding interactions.`;
+            } else if (qLower.includes('logp')) {
+                ans += `Calculated LogP is <b>${p.logp ? p.logp.toFixed(2) : 'N/A'}</b>.<br/>LogP represents the 1-octanol/water partition coefficient. Values between 0 and 5 indicate favorable oral absorption through biological lipid bilayers.`;
+            } else if (qLower.includes('aspirin') && qLower.includes('paracetamol')) {
+                ans += `<b>Aspirin</b> contains a reactive acetyl ester that irreversibly acetylates Ser529 in COX-1, conferring peripheral anti-inflammatory action.<br/><b>Paracetamol</b> contains a neutral acetamide and phenolic -OH, acting centrally through indirect COX inhibition with minimal peripheral anti-inflammatory activity.`;
+            } else if (qLower.includes('aromatic')) {
+                ans += `Aromaticity confers planar resonance stabilization with 4n+2 pi electrons conforming to Hückel's Rule. ${p.aromatic_rings ? `Contains ${p.aromatic_rings} aromatic ring(s).` : 'Contains no aromatic rings.'}`;
+            } else {
+                ans += `Formula: <b>${p.formula || ''}</b> | MW: <b>${p.molecular_weight || ''} g/mol</b> | TPSA: <b>${p.tpsa || ''} Å²</b>.<br/>Conformer energy minimized via MMFF94 force field.`;
+            }
+
+            ans += `<br/><br/><i style="font-size:0.75rem; color:#8b949e;">*Scientific Disclaimer: Educational cheminformatics analysis only.*</i>`;
+            box.innerHTML += `<div class="chat-bubble assistant"><b>🤖 Virtual Lab Assistant:</b><br/>${ans}</div>`;
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // PDF Generation via jsPDF
+        function downloadPdfReport() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const mol = moleculesData[currentMolName];
+            if (!mol) return;
+            const p = mol.properties;
+
+            doc.setFontSize(18);
+            doc.text("Cheminformatics Virtual Laboratory", 20, 20);
+            doc.setFontSize(11);
+            doc.setTextColor(100);
+            doc.text(`Comprehensive Analysis Report | Generated: ${new Date().toISOString().replace('T', ' ').slice(0, 19)} UTC`, 20, 28);
+            doc.line(20, 32, 190, 32);
+
+            doc.setTextColor(0);
+            doc.setFontSize(13);
+            doc.text(`1. Molecule: ${mol.name} (${mol.category})`, 20, 42);
+            doc.setFontSize(10);
+            doc.text(`Formula: ${p.formula}    |    MW: ${p.molecular_weight.toFixed(2)} g/mol`, 20, 50);
+            doc.text(`Canonical SMILES: ${mol.canonical_smiles}`, 20, 56);
+
+            doc.setFontSize(13);
+            doc.text("2. Physicochemical Descriptors", 20, 68);
+            doc.setFontSize(10);
+            doc.text(`Crippen LogP: ${p.logp.toFixed(2)}`, 20, 76);
+            doc.text(`TPSA: ${p.tpsa.toFixed(1)} Angstrom^2`, 20, 82);
+            doc.text(`H-Bond Donors: ${p.hbd}    |    Acceptors: ${p.hba}`, 20, 88);
+            doc.text(`Rotatable Bonds: ${p.rotatable_bonds}    |    Rings: ${p.ring_count}`, 20, 94);
+
+            doc.setFontSize(13);
+            doc.text("3. Drug-Likeness Screening", 20, 106);
+            doc.setFontSize(10);
+            doc.text(`Lipinski Rule of 5: ${mol.lipinski.is_compliant ? "PASSED (Compliant)" : "VIOLATIONS DETECTED"}`, 20, 114);
+            doc.text(`Veber Filter: ${mol.veber.is_compliant ? "PASSED (Compliant)" : "VIOLATIONS DETECTED"}`, 20, 120);
+
+            doc.setFontSize(13);
+            doc.text("4. 3D Conformer & Force Field", 20, 132);
+            doc.setFontSize(10);
+            doc.text(`Method: ETKDGv3 Distance Geometry`, 20, 140);
+            doc.text(`Force Field: ${mol.force_field} (Minimized Energy: ${mol.energy_kcal_mol.toFixed(2)} kcal/mol)`, 20, 146);
+            doc.text(`Total Generated Atoms: ${mol.atom_count}`, 20, 152);
+
+            doc.setFontSize(8);
+            doc.setTextColor(120);
+            doc.text("Disclaimer: In silico computational properties for educational research. Not clinical advice.", 20, 175);
+
+            doc.save(`${mol.name.toLowerCase()}_report.pdf`);
+        }
+
+        // Quiz Questions
+        const quizBanks = {
+            "Beginner": [
+                { q: "How are branching substituents represented in SMILES notation?", opts: ["[ ]", "( )", "*", "{ }"], ans: 1, exp: "Branches are enclosed in parentheses ( ) in SMILES syntax." },
+                { q: "What is the molecular formula of Ethanol (SMILES 'CCO')?", opts: ["C2H4O", "C2H6O", "C2H5O2", "CH3O"], ans: 1, exp: "Ethanol has 2 Carbons, 6 Hydrogens, and 1 Oxygen: C2H6O." },
+                { q: "Which functional group is found in Acetic acid ('CC(=O)O')?", opts: ["Ester", "Ketone", "Carboxylic acid", "Aldehyde"], ans: 2, exp: "-C(=O)OH defines a carboxylic acid." },
+                { q: "What does lowercase 'c' represent in SMILES?", opts: ["Radical carbon", "Aromatic carbon", "Isotope", "Ionized carbon"], ans: 1, exp: "Lowercase symbols denote aromatic atoms." },
+                { q: "What is the symbol for a double bond in SMILES?", opts: ["-", "=", "#", ":"], ans: 1, exp: "'=' denotes a double bond in SMILES syntax." }
+            ],
+            "Intermediate": [
+                { q: "In benzene (c1ccccc1) with 6 pi electrons, what is n in Huckel's rule (4n+2)?", opts: ["n = 0", "n = 1", "n = 2", "n = 6"], ans: 1, exp: "4(1) + 2 = 6, yielding n = 1." },
+                { q: "What does '@' or '@@' indicate in SMILES?", opts: ["Aromatic nitrogen", "Radical", "Tetrahedral chiral center", "Isotope"], ans: 2, exp: "@ denotes counterclockwise and @@ denotes clockwise stereochemistry." },
+                { q: "What does a high positive LogP indicate?", opts: ["High water solubility", "High lipophilicity", "High volatility", "Acidity"], ans: 1, exp: "LogP measures partitioning into non-polar octanol over water." },
+                { q: "Lipinski's Rule of 5 threshold for H-bond donors is:", opts: ["<= 10", "<= 5", "<= 2", "<= 140"], ans: 1, exp: "Lipinski defines HBD <= 5 for oral drug-likeness." },
+                { q: "Veber's rule for TPSA threshold is:", opts: ["<= 50", "<= 90", "<= 140", "<= 500"], ans: 2, exp: "Veber recommends TPSA <= 140 Angstrom^2 for passive bioavailability." }
+            ],
+            "Advanced": [
+                { q: "Why is MMFF94 preferred over UFF for organic drug-like molecules?", opts: ["Zero memory", "Parameterized specifically for drug-like organics", "Cannot do C-C bonds", "Solves DFT"], ans: 1, exp: "MMFF94 is specifically parameterized for medicinal chemistry scaffolds." },
+                { q: "What algorithm underlies Morgan / ECFP4 fingerprints?", opts: ["166 keys", "Circular neighborhood hashing up to radius 2", "Euclidean 3D coords", "UV absorption"], ans: 1, exp: "Morgan fingerprints iteratively collect radial topological environments." },
+                { q: "Formula for Tanimoto coefficient Tc is:", opts: ["c / (a + b)", "c / (a + b - c)", "2c / (a + b)", "(a * b) / c"], ans: 1, exp: "Tc = c / (a + b - c) represents intersection over union." },
+                { q: "Why is Aspirin an irreversible COX-1 inhibitor?", opts: ["Covalent serine acetylation", "Zinc coordination", "Hydrolysis", "Steric size"], ans: 0, exp: "Aspirin transfers its acetyl ester group covalently to Ser529 in COX-1." },
+                { q: "What advantage does ETKDG provide in RDKit conformer generation?", opts: ["No hydrogens", "Biases torsions using experimental CSD dihedral data", "Replaces physics", "Guarantees zero energy"], ans: 1, exp: "ETKDG samples torsion angles matching small-molecule crystal databases." }
+            ]
+        };
+
+        let currentQuizTier = "Beginner";
+
+        function loadQuizTier(tier) {
+            currentQuizTier = tier;
+            ['beg', 'int', 'adv'].forEach(id => document.getElementById(`tier-btn-${id}`).classList.remove('active'));
+            if (tier === 'Beginner') document.getElementById('tier-btn-beg').classList.add('active');
+            if (tier === 'Intermediate') document.getElementById('tier-btn-int').classList.add('active');
+            if (tier === 'Advanced') document.getElementById('tier-btn-adv').classList.add('active');
+
+            const questions = quizBanks[tier];
+            const container = document.getElementById('quiz-container');
+            container.innerHTML = questions.map((q, idx) => `
+                <div style="margin-bottom: 1.25rem; background: var(--bg-input); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="font-weight: 600; margin-bottom: 0.5rem; color: #fff;">Q${idx + 1}: ${q.q}</div>
+                    <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                        ${q.opts.map((opt, oIdx) => `
+                            <label style="font-size: 0.85rem; color: #cbd5e1; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                                <input type="radio" name="quiz_q_${idx}" value="${oIdx}"> ${opt}
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('quiz-result-box').style.display = 'none';
+        }
+
+        function gradeQuiz() {
+            const questions = quizBanks[currentQuizTier];
+            let correct = 0;
+            let reviewHtml = '';
+
+            questions.forEach((q, idx) => {
+                const selected = document.querySelector(`input[name="quiz_q_${idx}"]:checked`);
+                const chosenIdx = selected ? parseInt(selected.value) : -1;
+                const isCorrect = (chosenIdx === q.ans);
+                if (isCorrect) correct++;
+
+                reviewHtml += `
+                    <div style="border-left: 3px solid ${isCorrect ? '#2ea043' : '#f85149'}; background: #161b22; padding: 8px 12px; margin-bottom: 8px; border-radius: 4px;">
+                        <div style="font-weight: 600;">${isCorrect ? '✅' : '❌'} Q${idx + 1}: ${q.q}</div>
+                        <div style="font-size: 0.82rem; margin-top: 4px;">Your Answer: <span style="color:${isCorrect ? '#3fb950' : '#f85149'}">${chosenIdx >= 0 ? q.opts[chosenIdx] : 'Unanswered'}</span> | Correct: <span style="color:#3fb950;">${q.opts[q.ans]}</span></div>
+                        <div style="font-size: 0.78rem; color: #8b949e; margin-top: 4px;"><b>Explanation:</b> ${q.exp}</div>
+                    </div>
+                `;
+            });
+
+            const pct = Math.round((correct / questions.length) * 100);
+            const resBox = document.getElementById('quiz-result-box');
+            resBox.style.display = 'block';
+            resBox.innerHTML = `
+                <div style="background: rgba(0, 210, 255, 0.1); border: 1.5px solid #00d2ff; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem;">
+                    <h3 style="color:#00d2ff;">Score: ${pct}% (${correct} / ${questions.length} Correct)</h3>
+                    <p style="color: #cbd5e1; font-size: 0.9rem;">Grade: <b>${pct >= 80 ? 'Distinction' : (pct >= 50 ? 'Pass' : 'Needs Review')}</b></p>
+                </div>
+                <div>${reviewHtml}</div>
+            `;
+        }
+
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
+
